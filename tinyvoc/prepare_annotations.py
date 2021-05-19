@@ -36,7 +36,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument("--source", type=argparse.FileType("rb"), help="zipfile with pascalvoc 1.1 annotations (input)", required=True)
     parser.add_argument("--destination", type=pathlib.Path, required=True, help="path for output")
     parser.add_argument("--prefix", type=str, required=True, help="prefix for images (instead of 'frame')", default='frame')
-    parser.add_argument("--export-imagesets", help="also write an ImageSets folder", action='store_const', const=True, default=False)
+    parser.add_argument("--export-imagesets", help="also write an ImageSets folder (default)", default=True)
     parser.add_argument("--metrics", type=pathlib.Path, help="metrics file to write")
 
     return parser.parse_args()

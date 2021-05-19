@@ -1,3 +1,4 @@
+from __future__ import annotations
 import xml.etree.ElementTree as ET
 from typing import List, Dict, IO, Optional, Union, Generator
 import zipfile
@@ -7,6 +8,9 @@ import logging, pathlib
 import yaml
 
 class LineageSource(object):
+    """
+        A LineageSource is a reference to a source dataset that was used to create this dataset. It might recursively refer other lineage sources
+    """
     def __init__(self):
         self.annotation_path = ''
         self.image_path = ''
@@ -33,6 +37,9 @@ class LineageSource(object):
         return d
 
 class DataLineage(object):
+    """
+        A DataLineage object holds information about how this dataset was created (which source datasets were used)
+    """
     def __init__(self, src: Optional[Union[str, IO]] = None) -> None:
         self.data = { 'sources' : [] }
         if isinstance(src, str):
@@ -71,6 +78,21 @@ class DataLineage(object):
         self.sources = s
 
 
+class BoundingBox(object):
+    def __init__(self) -> None:
+        self.xmin = None
+        self.xmax = None
+        self.ymin = None
+        self.ymax = None
+    
+    def overlaps(self, other: BoundingBox) -> bool:
+        if (self.xmax < other.xmin) or (self.xmin > other.xmax):
+            return False
+        if (self.ymax < other.ymin) or (self.ymin > other.ymax):
+            return False
+        return True
+    
+
 
 class PascalVocObject(object):
     def __init__(self,el) -> None:
@@ -95,6 +117,18 @@ class PascalVocObject(object):
     @name.setter
     def name(self, n: str):
         self.el.find("name").text = n
+    
+    @property
+    def boundingbox(self) -> BoundingBox:
+        bndbox = self.el.find("bndbox")
+        if bndbox:
+            b = BoundingBox()
+            b.xmin = float(bndbox.find("xmin").text)
+            b.xmax = float(bndbox.find("xmax").text)
+            b.ymin = float(bndbox.find("ymin").text)
+            b.ymax = float(bndbox.find("ymax").text)
+            return b
+        return None
 
     @property
     def attributes(self) -> Dict[str, str]:
@@ -291,6 +325,10 @@ class AnnotationZip(object):
                     finally:
                         fobj.close()
 
+def get_zip_annotations(zipfile: Union[str, IO], root_dir: str = None) -> Generator[PascalVocAnnotation, None, None]:
+    az = AnnotationZip(zipfile, root_dir)
+    return az.generate_annotations()
+
 class AnnotationDirectory(object):
     def __init__(self, path: str) -> None:
         self.path = path
@@ -309,3 +347,7 @@ class AnnotationDirectory(object):
             for f in files:
                 if os.path.splitext(f)[1].lower() == '.xml':
                     yield PascalVocAnnotation(os.path.join(root,f), f, self.path)
+
+def get_dir_annotations(path: str) -> Generator[PascalVocAnnotation, None, None]:
+    ad = AnnotationDirectory(path)
+    return ad.generate_annotations()
