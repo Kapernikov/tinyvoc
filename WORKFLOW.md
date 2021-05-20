@@ -95,10 +95,10 @@ Let’s use this to create a pipeline using dvc. We actually just run the script
 
 ```shell
 dvc run -n v2f_video1  \
-  -d data/movie1/movie.mkv \
-  -O data/movie1/JPEGImages \
-  video-to-frame --source data/movie1/inputs/continuous_fragment_1.mkv \
-       --destination data/movie1/JPEGImages
+  -d "data/movie1/movie.mkv" \
+  -O "data/movie1/JPEGImages" \
+  video-to-frame --source "data/movie1/movie.mkv" \
+       --destination "data/movie1/JPEGImages"
 ```
 
 This will not only run the script, but it will also save the commandline of the script with its dependencies in dvc.yaml so that you can rerun the script eg when you get a longer video. This is not too likely (when you get a new video, you maybe want to start a new dataset instead). 
