@@ -8,6 +8,9 @@ DVC can already be useful *even in the exploration phase*: while you are trying 
 
 A data registry is simply a repo with a number of (related) datasets, plus some scripts for preparation and cleaning, that can be used to "feed" other projects. As we will see later, DVC makes this easy.
 
+![a data registry](doc/datareg-concept.png "How a data registry works")
+
+
 To avoid breakage we **keep the lifecycle of one dataset (= a folder in a repo) limited**: a dataset is related to an experiment, eg “pascalVOC annotated images taken with camera X”. when we incrementally improve the dataset (better annotations, more images, …) we get new versions of the dataset, but when  we do big changes (eg new format, a completely new set of images) we switch to a new dataset.
 
 So, TLDR:
