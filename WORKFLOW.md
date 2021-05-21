@@ -1,4 +1,4 @@
-# Using DVC data registries to manage PASCAL VOC annotations
+# Using DVC data registries to manage annotated datasets
 
 [DVC](https://dvc.org/) is a tool to track dataset versions for your ML model, integrated with git. This way, you can track versions of your data and model as well as the versions of your code. You could use DVC by just adding the datasets and models you use to the git project that contains the code for training and inferencing your model.
 
