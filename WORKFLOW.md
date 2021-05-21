@@ -1,6 +1,6 @@
 # Using DVC to manage PASCAL VOC annotations
 
-DVC is a tool to track dataset versions for your ML model, integrated with git. This way, you can track versions of your data and model as well as the versions of your code. You could use DVC by just adding the datasets and models you use to the git project that contains the code for training and inferencing your model.
+[DVC](https://dvc.org/) is a tool to track dataset versions for your ML model, integrated with git. This way, you can track versions of your data and model as well as the versions of your code. You could use DVC by just adding the datasets and models you use to the git project that contains the code for training and inferencing your model.
 
 But that doesn't always work perfectly: especially in the beginning of a project, you are exploring stuff, trying out different strategies, .... This means that your code could be a (throwaway) fork of a public github repo you are trying out (and maybe will throw away), something you set up quick&dirty. Later, you will decide your strategy and keep one repository with further iterations.
 
