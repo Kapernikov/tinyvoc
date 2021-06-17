@@ -1,8 +1,3 @@
-* data lifecycle opmerking niet duidelijk
-* duidelijk maken over wat voor data het hier gaat
-* conclusieke op het einde (call to action)
-
-
 # Using DVC data registries to manage annotated datasets
 
 [DVC](https://dvc.org/) is a tool to track dataset versions for your ML model, integrated with git. This way, you can track versions of your data and model as well as the versions of your code. You could use DVC by just adding the datasets and models you use to the git project that contains the code for training and inferencing your model.
@@ -28,7 +23,7 @@ So, to summarize:
 
 # Starting a dataset project
 
-let’s create a dataset project
+Let's create an example project with video data annotated in Pascal VOC format (but it would go for any type of data).
 
 ```shell
 mkdir myproject
@@ -157,6 +152,8 @@ This is a whole lot!
 
 ![The output of DVC metrics show](doc/dvc-metrics.png)
 
+
+
 ### Merging multiple datasets
 
 In our workflow, we imported and annotated several separate movies, each resulting in its own DVC pipeline. In the end, we can merge all these separate movies into one big training set and a validation set. This is the goal of the `merge-annotations` script in tinyvoc. The script is very simple, and only exists because of two reasons:
@@ -200,5 +197,8 @@ dvc update Annotations.dvc
 
 Voila, and the data is updated.
 
-> **_Note:_** that, unfortunately this only works for cached assets, in the above script we chose not to cache JPEGImages to save space, so dvc import won’t work for JPEGImages.
+> **_Note:_** that, unfortunately this only works for cached assets, in the above script we chose not to cache JPEGImages to save space, so dvc import won’t work for JPEGImages. If you want to import the JPEG Images, you will have to run the pipeline locally and just copy the dataset. By doing this you will loose dvc's ability to track the data all the way from the source. If you know what the limitations are, you can cope with them (eg by tracking data lineage in another way).
 
+# Wrapping up
+
+DVC data registries can be quite useful if you can not for some reason keep all your code / models / data in one single repository. We show one possible way of working here. If you need advice on how to set up DVC in your context or you want to automate things further, don't hesitate to [give us a call](mailto:info@kapernikov.com).
