@@ -1,22 +1,26 @@
+* data lifecycle opmerking niet duidelijk
+* duidelijk maken over wat voor data het hier gaat
+* conclusieke op het einde (call to action)
+
+
 # Using DVC data registries to manage annotated datasets
 
 [DVC](https://dvc.org/) is a tool to track dataset versions for your ML model, integrated with git. This way, you can track versions of your data and model as well as the versions of your code. You could use DVC by just adding the datasets and models you use to the git project that contains the code for training and inferencing your model.
 
-But that doesn't always work perfectly: especially in the beginning of a project, you are exploring stuff, trying out different strategies, .... This means that your code could be a (throwaway) fork of a public github repo you are trying out (and maybe will throw away), something you set up quick&dirty. Later, you will decide your strategy and keep one repository with further iterations.
+But that doesn't always work perfectly: especially in the beginning of a project, you are exploring stuff, trying out different strategies, .... This means that your code could be a (throwaway) fork of a public github repo you are trying out, something you set up quick&dirty. Later, you will decide your strategy and keep one repository with further iterations.
 
-DVC can already be useful *even in the exploration phase*: while you are trying out different models, you are probably also building a good training and validation dataset. You want to make this dataset available for all your quick&dirty experiments. Putting the dataset in the same repo as the code would be cumbersome in this case. That's why, in this phase, we opt for the strategy of creating [data registries](https://dvc.org/doc/use-cases/data-registries). 
+DVC can already be useful *even in the exploration phase*: while you are trying out different models, you are probably also building a good training and validation dataset. You want to make this dataset available for all your quick&dirty experiments. Putting the dataset in the same repo as the code would be cumbersome in this case, as you would have to move your data all the time from one git repository to another one, while adding/removing data at the same time. That's why, in this phase, we opt for the strategy of creating [data registries](https://dvc.org/doc/use-cases/data-registries). 
 
 A data registry is simply a repo with a number of (related) datasets, plus some scripts for preparation and cleaning, that can be used to "feed" other projects. As we will see later, DVC makes this easy.
 
 ![a data registry](doc/datareg-concept.png "How a data registry works")
 
+In the above picture, we have multiple datasets (or folders with annotated/labeled data) in our registry. We think this is good practise: as you organise data collection and assembly, you will have multiple initiatives going on (maybe data gathered from different locations or from different batches). We would suggest to keep them separate and **only merge them on demand as part of DVC pipelines**. This way, you can still isolate/remove one dataset if needed, or completely change your decisions on which data you will use for training and which data you will use for validation.
 
-To avoid breakage we **keep the lifecycle of one dataset (= a folder in a repo) limited**: a dataset is related to an experiment, eg “pascalVOC annotated images taken with camera X”. when we incrementally improve the dataset (better annotations, more images, …) we get new versions of the dataset, but when  we do big changes (eg new format, a completely new set of images) we switch to a new dataset.
-
-So, TLDR:
+So, to summarize:
 
 * We create a "data registry": a git repo with a dvc repo for every “data effort” (collection of related datasets that took us some work to assemble)
-* the gitrepo’s for the model will then import the results of the dataprep pipelines from these gitrepos. we don’t need to duplicate the full dataprep pipeline (eg from cvat to dataset) every time.
+* The git repositories with the model code will then **import** the results of the dataprep pipelines from these gitrepos. we don’t need to duplicate the full dataprep pipeline (eg from cvat to dataset) every time.
 
 > **_NOTE_:** When setting up DVC remote storage, map all the dvc contents of one projects to one storage container or bucket. No problem if you have multiple datasets in multiple gitrepos sharing the same bucket: dvc uses content-addressable filenames so you cannot overwrite somebody elses data unless the files are identical.
 
@@ -150,6 +154,8 @@ This is a whole lot!
 * We add a couple of outputs using `-o`. These outputs will be pushed to our remote because here we cache them. We could as well not cache them using `-O`.
 
 * We let our script write simple metrics (basically the number of occurences of every class) to a metrics.json, and we tell dvc about this using -m. DVC will now nicely show statistics (and how they evolve) if we do `dvc metrics show`.
+
+![The output of DVC metrics show](doc/dvc-metrics.png)
 
 ### Merging multiple datasets
 
