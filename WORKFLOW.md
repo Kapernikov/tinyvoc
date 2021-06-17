@@ -201,4 +201,4 @@ Voila, and the data is updated.
 
 # Wrapping up
 
-DVC data registries can be quite useful if you can not for some reason keep all your code / models / data in one single repository. We show one possible way of working here. If you need advice on how to set up DVC in your context or you want to automate things further, don't hesitate to [give us a call](mailto:info@kapernikov.com).
+DVC data registries can be quite useful if you can not for some reason keep all your code / models / data in one single repository. We show one possible way of working here. If you need advice on how to set up DVC in your context or you want to automate things further, don't hesitate to [contact us](mailto:info@kapernikov.com).
