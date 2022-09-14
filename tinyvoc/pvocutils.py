@@ -1,10 +1,12 @@
 from __future__ import annotations
+from importlib.util import source_hash
 import xml.etree.ElementTree as ET
 from typing import List, Dict, IO, Optional, Union, Generator
 import zipfile
 import os, shutil
 from enum import Enum
 import logging, pathlib
+from .hashutil import hash_from_Str, hash_from_file
 import yaml
 
 class LineageSource(object):
@@ -15,12 +17,15 @@ class LineageSource(object):
         self.annotation_path = ''
         self.image_path = ''
         self.root_dir = ''
+        self.source_hash = ''
         self.sources = []
         pass
     
     def _load_from_dict(self, dct):
         self.annotation_path = dct['annotation_path']
         self.image_path = dct['image_path']
+        if "sourcehash" in dct:
+            self.source_hash = dct["sourcehash"]
         self.root_dir = dct['root_dir']
         def create_from_dct(d):
             l = LineageSource()
@@ -33,6 +38,7 @@ class LineageSource(object):
         d['annotation_path'] = self.annotation_path
         d['image_path'] = self.image_path
         d['root_dir'] = self.root_dir
+        d["sourcehash"] = self.source_hash
         d['sources'] = [ x._to_dict() for x in self.sources ]
         return d
 
@@ -41,13 +47,15 @@ class DataLineage(object):
         A DataLineage object holds information about how this dataset was created (which source datasets were used)
     """
     def __init__(self, src: Optional[Union[str, IO]] = None) -> None:
-        self.data = { 'sources' : [] }
+        self.data = { 'sources' : [], 'params': {} }
         if isinstance(src, str):
             src = open(src, 'r')
         if src is None:
             pass
         else:
             self.data = yaml.load(src, yaml.Loader)
+        if not "params" in self.data:
+            self.data["params"] = {}
     
     @property
     def sources(self) -> List[LineageSource]:
@@ -58,8 +66,25 @@ class DataLineage(object):
             return l
         return [create_src(x) for x in d['sources']]
     
+    def compute_hash(self):
+        buf = ""
+        hasempty = False
+        for s in self.sources:
+            buf += s.source_hash
+            if s.source_hash == "":
+                hasempty = True
+        
+        params = list(self.data["params"].items())
+        params = [f"{a[0]}:{a[1]}" for a in params]
+        params.sort()
+        params = ",".join(params)
+        self.data["sources_hash"] = hash_from_Str(buf+params)
+        self.data["has_sources_without_hash"] = hasempty
+
+
 
     def dump_yaml(self, path: str):
+        self.compute_hash()
         with open(path,'w') as f:
             f.write(yaml.dump(self.data, Dumper=yaml.Dumper))
 
@@ -70,6 +95,13 @@ class DataLineage(object):
     def as_source(self) -> LineageSource:
         l = LineageSource()
         l.sources = self.sources
+        buf = ""
+        hasempty = False
+        for s in self.sources:
+            buf += s.source_hash
+            if s.source_hash == "":
+                hasempty = True
+        l.source_hash = hash_from_Str(buf)
         return l
 
     def add_source(self, src):
@@ -306,6 +338,7 @@ class AnnotationZip(object):
     def as_lineage_source(self):
         src = LineageSource()
         src.root_dir = self.root_dir
+        src.source_hash = hash_from_file(self.zipfile)
         if self.root_dir is None:
             src.root_dir = os.getcwd()
         if isinstance(self.zipfile, str):
