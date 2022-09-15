@@ -3,6 +3,7 @@ import sys
 import os
 import argparse
 import pathlib
+import zipfile
 from .pvocutils import DataLineage, LineageSource, SingleFileLineageSource, filter_args_for_datalineage
 
 def get_args() -> argparse.Namespace:
@@ -30,10 +31,12 @@ def main():
         if lineage.is_uptodate_with(old_lineage):
             print("nothing to do, already done")
             sys.exit(0)
-    os.system("rm {opth}/*".format(opth=opth))
+    if len(str(opth)) < 3:
+        raise Exception("invalid very short path {opth}.")
+    os.system("rm -f {opth}/*".format(opth=opth))
     os.system("mkdir -p {opth}".format(opth=opth))
-    os.chdir(opth)
-    os.system("unzip {a}".format(a=pth))
+    with zipfile.ZipFile(pth, 'r') as zip_ref:
+        zip_ref.extractall(opth)
     lineage.dump_yaml(lineage_fn)
 
 if __name__ == '__main__':
