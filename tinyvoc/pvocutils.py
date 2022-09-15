@@ -10,6 +10,13 @@ import logging, pathlib
 from .hashutil import hash_from_Str, hash_from_file
 import yaml
 
+def SingleFileLineageSource(fn):
+    hash = hash_from_file(fn)
+    l = LineageSource()
+    l.image_path = fn
+    l.source_hash = hash
+    return l
+
 class LineageSource(object):
     """
         A LineageSource is a reference to a source dataset that was used to create this dataset. It might recursively refer other lineage sources
@@ -275,7 +282,6 @@ class DirAnnotationWriter(object):
         self.annotation_output_dir = annotation_output_dir
         self.image_dir = os.path.join(self.root_dir, "JPEGImages")
         os.makedirs(self.root_dir, exist_ok=True)
-        os.makedirs(self.image_dir, exist_ok=True)
         os.makedirs(self.annotation_output_dir, exist_ok=True)
         self.rename_counter = 0
         self.metrics = {}
@@ -303,12 +309,13 @@ class DirAnnotationWriter(object):
             os.path.join(src_root_dir, "JPEGImages", rel_fn),
         ]
         for candidate in search_for_image:
-            if os.path.isfile(candidate):
+            if os.path.isfile(candidate) and os.path.exists(candidate):
                 img_path = candidate
         if ((img_path == '') and (treat_image != ImageTreatmentSetting.KEEP_PATH)):
             logging.warning(f"need to rewrite path but image does not exist {annotation.id} name={fn}, removing annotation")
             return None
-        else:
+        elif img_path == '':
+            print(f"path {fn} {img_path} {os.path.abspath(img_path)}")
             img_path = fn
         fn = img_path
 
@@ -320,6 +327,7 @@ class DirAnnotationWriter(object):
             fn = os.path.relpath(fn, self.image_dir)
             annotation.filename = fn
         elif treat_image == (ImageTreatmentSetting.COPY_IMAGE, ImageTreatmentSetting.COPY_IMAGE_RENAME):
+            os.makedirs(self.image_dir, exist_ok=True)
             dest_fn = os.path.split(fn)[1]
             if treat_image == ImageTreatmentSetting.COPY_IMAGE_RENAME:
                 dest_fn = f'{self.rename_counter:06}' + os.path.splitext(dest_fn)[1]
@@ -328,6 +336,7 @@ class DirAnnotationWriter(object):
             shutil.copy2(fn, dest_pth)
             annotation.filename = os.path.relpath(dest_pth, self.image_dir)
         elif treat_image in (ImageTreatmentSetting.SYMLINK_IMAGE, ImageTreatmentSetting.SYMLINK_IMAGE_RENAME):
+            os.makedirs(self.image_dir, exist_ok=True)
             dest_fn = os.path.split(fn)[1]
             if treat_image == ImageTreatmentSetting.SYMLINK_IMAGE_RENAME:
                 dest_fn = f'{self.rename_counter:06}' + os.path.splitext(dest_fn)[1]

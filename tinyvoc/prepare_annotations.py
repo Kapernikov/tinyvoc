@@ -33,13 +33,14 @@ def get_args() -> argparse.Namespace:
     parser.add_argument("--parameters", help="path to parameters.yaml file", type=argparse.FileType("r", encoding="utf8"), required=False)
     parser.add_argument("--root", type=pathlib.Path, required=True, help="root folder for constructing relative paths")
     parser.add_argument("--source", type=argparse.FileType("rb"), help="zipfile with pascalvoc 1.1 annotations (input)", required=True)
-    parser.add_argument("--destination", type=pathlib.Path, required=True, help="path for output")
+    parser.add_argument("--destination", type=pathlib.Path, required=False, help="path for output (default=$root/Annotations)")
     parser.add_argument("--label", type=str, required=False, help="allowed label (repeat this option to have multiple allowed labels)", action="append")
     parser.add_argument("--prefix", type=str, required=True, help="prefix for images (instead of 'frame')", default='frame')
     parser.add_argument("--export-imagesets", help="also write an ImageSets folder (default)", default=True)
     parser.add_argument("--metrics", type=pathlib.Path, help="metrics file to write")
     parser.add_argument("--concat-type", action="store_true", help="concat type attribute to label")
     parser.add_argument("--no-rewrite",  action="store_true", help="disable filename sanitizing and rewriting: keep original filenames and keep annotations for missing files")
+    parser.add_argument("--symlink",  action="store_true", help="symlink images so that you have an JPegImages dir")
 
     return parser.parse_args()
 
@@ -47,6 +48,8 @@ def get_args() -> argparse.Namespace:
 def main():
     logging.basicConfig(level=logging.INFO)
     args = get_args()
+    if args.destination is None:
+        args.destination = args.root / "Annotations"
     if args.parameters:
         params = yaml.load(args.parameters, Loader=yaml.FullLoader)
         labels = params["annotations"]["valid-labels"]
@@ -68,6 +71,8 @@ def main():
     treat_way = ImageTreatmentSetting.REWRITE_RELPATH
     if args.no_rewrite:
         treat_way = ImageTreatmentSetting.KEEP_PATH
+    if args.symlink:
+        treat_way = ImageTreatmentSetting.SYMLINK_IMAGE_RENAME
     l.add_source(gen.as_lineage_source())
     if writer.check_lineage_okay(l):
         print("dataset is up to date, doing nothing")

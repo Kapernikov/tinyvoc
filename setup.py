@@ -25,7 +25,8 @@ setuptools.setup(
         'console_scripts':[
             'merge-annotations=tinyvoc.merge_annotations:main',
             'prepare-annotations=tinyvoc.prepare_annotations:main',
-            'video-to-frame=tinyvoc.video_to_frame:main'
+            'video-to-frame=tinyvoc.video_to_frame:main',
+            'explode-zipped-images=tinyvoc.explode_zipped_images:main'
         ]
     }
 )

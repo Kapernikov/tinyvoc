@@ -34,6 +34,13 @@ def main():
     lineage = DataLineage()
     for s in sources:
         lineage.add_source(s.as_lineage_source())
+    for k,v in vars(args).items():
+        if type(v) in [int, str, bool, pathlib.Path]:
+            lineage.add_param(k,v)
+    if writer.check_lineage_okay(lineage):
+        print("dataset already okay, doing nothing")
+        sys.exit(0)
+    for s in sources:
         for a in s.generate_annotations():
             assert isinstance(a, PascalVocAnnotation)
             writer.add_annotation(a,ImageTreatmentSetting.SYMLINK_IMAGE_RENAME)
