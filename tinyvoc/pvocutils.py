@@ -287,6 +287,7 @@ class DirAnnotationWriter(object):
         self.rename_counter = 0
         self.metrics = {}
         self.ids = []
+        self.extra_search_path = []
 
     def _log_object(self, label):
         if not label in self.metrics:
@@ -301,14 +302,20 @@ class DirAnnotationWriter(object):
             src_root_dir = self.root_dir
         img_path = ''
         rel_fn = os.path.basename(fn)
-        search_for_image = [
+        search_for_image = []
+        for sp in self.extra_search_path:
+            search_for_image.append(os.path.join(sp, fn)),
+            search_for_image.append(os.path.join(sp, rel_fn)),
+
+        search_for_image.extend([
             fn,
             os.path.join(src_root_dir, fn),
             os.path.join(src_root_dir, "JPEGImages", fn),
             rel_fn,
             os.path.join(src_root_dir, rel_fn),
             os.path.join(src_root_dir, "JPEGImages", rel_fn),
-        ]
+        ])
+
         for candidate in search_for_image:
             if os.path.isfile(candidate) and os.path.exists(candidate):
                 img_path = candidate

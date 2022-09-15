@@ -35,7 +35,8 @@ def get_args() -> argparse.Namespace:
     parser.add_argument("--source", type=argparse.FileType("rb"), help="zipfile with pascalvoc 1.1 annotations (input)", required=True)
     parser.add_argument("--destination", type=pathlib.Path, required=False, help="path for output (default=$root/Annotations)")
     parser.add_argument("--label", type=str, required=False, help="allowed label (repeat this option to have multiple allowed labels)", action="append")
-    parser.add_argument("--prefix", type=str, required=True, help="prefix for images (instead of 'frame')", default='frame')
+    parser.add_argument("--imagedir", type=pathlib.Path, required=False, help="folder in which to find images. to search in multiple folders, repeat this option", action="append")
+    parser.add_argument("--prefix", type=str, required=False, help="prefix for images (instead of 'frame')", default='frame')
     parser.add_argument("--export-imagesets", help="also write an ImageSets folder (default)", default=True)
     parser.add_argument("--metrics", type=pathlib.Path, help="metrics file to write")
     parser.add_argument("--concat-type", action="store_true", help="concat type attribute to label")
@@ -63,6 +64,7 @@ def main():
     os.makedirs(args.destination, exist_ok=True)
     os.system("rm {s}/*.xml".format(s=args.destination))
     writer = DirAnnotationWriter(args.root, args.destination)
+    writer.extra_search_path = [str(x) for x in args.imagedir]
     gen = AnnotationZip(args.source)
     l = DataLineage()
     for k,v in filter_args_for_datalineage(vars(args)).items():
