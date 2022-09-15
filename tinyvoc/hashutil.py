@@ -9,7 +9,7 @@ def hash_bytestr_iter(bytesiter, hasher, ashexstr=False):
     return hasher.hexdigest() if ashexstr else hasher.digest()
 
 def file_as_blockiter(afile, blocksize=65536):
-    with afile:
+        #with afile:
         block = afile.read(blocksize)
         while len(block) > 0:
             yield block

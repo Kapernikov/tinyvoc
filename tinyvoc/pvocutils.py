@@ -1,7 +1,8 @@
 from __future__ import annotations
+from genericpath import isfile
 from importlib.util import source_hash
 import xml.etree.ElementTree as ET
-from typing import List, Dict, IO, Optional, Union, Generator
+from typing import List, Dict, IO, Optional, Tuple, Union, Generator
 import zipfile
 import os, shutil
 from enum import Enum
@@ -57,6 +58,10 @@ class DataLineage(object):
         if not "params" in self.data:
             self.data["params"] = {}
     
+
+    def add_param(self, key: str, val: Union[str, int, bool]):
+        self.data["params"][key] = val
+
     @property
     def sources(self) -> List[LineageSource]:
         d = self.data
@@ -78,10 +83,23 @@ class DataLineage(object):
         params = [f"{a[0]}:{a[1]}" for a in params]
         params.sort()
         params = ",".join(params)
-        self.data["sources_hash"] = hash_from_Str(buf+params)
+        self.data["dataset_hash"] = hash_from_Str(buf+params)
         self.data["has_sources_without_hash"] = hasempty
 
-
+    def get_hash(self) -> Tuple(str, bool):
+        if not "dataset_hash" in self.data or self.data["dataset_hash"] == "":
+            self.compute_hash()
+        return (self.data["dataset_hash"], not self.data["has_sources_without_hash"])
+    
+    def is_uptodate_with(self, other: "DataLineage"):
+        h, ok = self.get_hash()
+        other_h, other_ok = other.get_hash()
+        if (not ok) or (not other_ok):
+            logging.info(f"cannot check for up to dateness as hashes are missing {self}")
+            return False
+        if h == other_h:
+            return True
+        return False
 
     def dump_yaml(self, path: str):
         self.compute_hash()
@@ -275,15 +293,23 @@ class DirAnnotationWriter(object):
         if src_root_dir is None:
             src_root_dir = self.root_dir
         img_path = ''
-        if os.path.isfile(fn):
-            img_path = fn
-        elif os.path.isfile(os.path.join(src_root_dir, fn)):
-            img_path = os.path.join(src_root_dir, fn)
-        elif os.path.isfile(os.path.join(src_root_dir, "JPEGImages", fn)):
-            img_path = os.path.join(src_root_dir, "JPEGImages", fn)
-        else:
-            logging.debug(f"0 image does not exist {annotation.id} --> try to find {fn}")
+        rel_fn = os.path.basename(fn)
+        search_for_image = [
+            fn,
+            os.path.join(src_root_dir, fn),
+            os.path.join(src_root_dir, "JPEGImages", fn),
+            rel_fn,
+            os.path.join(src_root_dir, rel_fn),
+            os.path.join(src_root_dir, "JPEGImages", rel_fn),
+        ]
+        for candidate in search_for_image:
+            if os.path.isfile(candidate):
+                img_path = candidate
+        if ((img_path == '') and (treat_image != ImageTreatmentSetting.KEEP_PATH)):
+            logging.warning(f"need to rewrite path but image does not exist {annotation.id} name={fn}, removing annotation")
             return None
+        else:
+            img_path = fn
         fn = img_path
 
         self.rename_counter += 1
@@ -316,10 +342,19 @@ class DirAnnotationWriter(object):
 
     def write_lineage(self, d: DataLineage):
         d.dump_yaml(os.path.join(self.root_dir, "data-lineage.yaml"))
+    
+    def check_lineage_okay(self, d: DataLineage):
+        pth = os.path.join(self.root_dir, "data-lineage.yaml")
+        if not os.path.isfile(pth):
+            return False
+        other = DataLineage(pth)
+        return other.is_uptodate_with(d)
+        
+
 
     def write_dataset_meta(self):
         for sl in ["Main","Action","Segmentation","Layout"]:
-            os.makedirs(os.path.join(self.root_dir, "ImageSets", sl))
+            os.makedirs(os.path.join(self.root_dir, "ImageSets", sl), exist_ok=True)
             with open(os.path.join(self.root_dir, "ImageSets", sl,"default.txt"),"w") as f:
                 f.write("\n".join(self.ids))
         for lbl in self.metrics.keys():
@@ -331,8 +366,14 @@ class DirAnnotationWriter(object):
 
 
 class AnnotationZip(object):
-    def __init__(self, zipfile: Union[str, IO], root_dir: str=  None) -> None:
+    def __init__(self, zipfile: Union[str, IO, pathlib.Path], root_dir: str=  None) -> None:
         self.zipfile = zipfile
+        if isinstance(zipfile, str):
+            if not os.path.exists(zipfile):
+                raise Exception(f"file not found {zipfile}")
+        if isinstance(zipfile, pathlib.Path):
+            if not zipfile.exists():
+                raise Exception(f"file {zipfile} not found")
         self.root_dir = root_dir
     
     def as_lineage_source(self):
