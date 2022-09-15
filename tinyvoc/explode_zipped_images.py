@@ -3,7 +3,7 @@ import sys
 import os
 import argparse
 import pathlib
-from .pvocutils import DataLineage, LineageSource, SingleFileLineageSource
+from .pvocutils import DataLineage, LineageSource, SingleFileLineageSource, filter_args_for_datalineage
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="dataset preparation")
@@ -19,9 +19,8 @@ def main():
     opth = os.path.abspath(args.destination)
     lineage = DataLineage()
     lineage.add_source(SingleFileLineageSource(pth))
-    for k,v in vars(args).items():
-        if type(v) in [int, str, bool, pathlib.Path]:
-            lineage.add_param(k,v)
+    for k,v in filter_args_for_datalineage(vars(args)).items():
+        lineage.add_param(k,v)
     lineage_fn = str(args.destination.absolute())
     if lineage_fn.endswith("/"):
         lineage_fn = lineage_fn[:-1]

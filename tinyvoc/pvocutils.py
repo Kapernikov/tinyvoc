@@ -1,6 +1,7 @@
 from __future__ import annotations
 from genericpath import isfile
 from importlib.util import source_hash
+from posixpath import islink
 import xml.etree.ElementTree as ET
 from typing import List, Dict, IO, Optional, Tuple, Union, Generator
 import zipfile
@@ -342,6 +343,8 @@ class DirAnnotationWriter(object):
                 dest_fn = f'{self.rename_counter:06}' + os.path.splitext(dest_fn)[1]
                 annotation.id = f'{self.rename_counter:06}'
             dest_pth = os.path.join(self.image_dir, dest_fn)
+            if os.path.islink(dest_pth):
+                os.unlink(dest_pth)
             os.symlink(os.path.abspath(fn), dest_pth)
             annotation.filename = os.path.relpath(dest_pth, self.image_dir)
         annotation.write(os.path.join(self.annotation_output_dir, annotation.id + ".xml"))
@@ -434,3 +437,14 @@ class AnnotationDirectory(object):
 def get_dir_annotations(path: str) -> Generator[PascalVocAnnotation, None, None]:
     ad = AnnotationDirectory(path)
     return ad.generate_annotations()
+
+def filter_args_for_datalineage(args: dict):
+    allowed = [(int, False), (str, False), (pathlib.Path, True), (bool, False), (pathlib.PosixPath, True)]
+    new_d = {}
+    for (k,v) in args.items():
+        for (a,to_str) in allowed:
+            if isinstance(v,a):
+                if to_str:
+                    v = str(v)
+                new_d[k] = v
+    return new_d

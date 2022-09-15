@@ -65,9 +65,8 @@ def main():
     writer = DirAnnotationWriter(args.root, args.destination)
     gen = AnnotationZip(args.source)
     l = DataLineage()
-    for k,v in vars(args).items():
-        if type(v) in [int, str, bool, pathlib.Path]:
-            l.add_param(k,v)
+    for k,v in filter_args_for_datalineage(vars(args)).items():
+        l.add_param(k,v)
     treat_way = ImageTreatmentSetting.REWRITE_RELPATH
     if args.no_rewrite:
         treat_way = ImageTreatmentSetting.KEEP_PATH

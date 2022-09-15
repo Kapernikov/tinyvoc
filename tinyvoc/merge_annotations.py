@@ -34,9 +34,8 @@ def main():
     lineage = DataLineage()
     for s in sources:
         lineage.add_source(s.as_lineage_source())
-    for k,v in vars(args).items():
-        if type(v) in [int, str, bool, pathlib.Path]:
-            lineage.add_param(k,v)
+    for k,v in filter_args_for_datalineage(vars(args)).items():
+        lineage.add_param(k,v)
     if writer.check_lineage_okay(lineage):
         print("dataset already okay, doing nothing")
         sys.exit(0)
