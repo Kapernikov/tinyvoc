@@ -53,7 +53,21 @@ class LineageSource(object):
 
 class DataLineage(object):
     """
-        A DataLineage object holds information about how this dataset was created (which source datasets were used)
+        A DataLineage object holds information about how an artifact was created (which source datasets were used)
+        Two artifacts are considered identical if they were generated using the same source files and the same params
+        To make a DataLineage object:
+            * create an instance of this object
+            * add some parameters with the add_param function
+            * add some sources:
+                you can use SingleFileLineageSource to create a source object with hash checksum from a single file
+                you can use a AnnotationZip or AnnotationDirectory to create a source object from pascalvoc annotations
+                you can instantiate your own LineageSource object. It now has an annotation_path and a image_path. if your lineage source is not really image+annotations, just use the image path
+                you can use another data lineage (of a previous job, maybe loaded from yaml) as lineage source by using as_source
+        Now the script logic can:
+            * determine a path for a yaml file to save the Data Lineage
+            * check if this DataLineage contains the same info as what is already in the yaml file (is_uptodate_with)
+            * if not, you need to do whatever work is needed (computations, DAG) and dump_yaml the file to that path
+
     """
     def __init__(self, src: Optional[Union[str, IO]] = None) -> None:
         self.data = { 'sources' : [], 'params': {} }
@@ -99,7 +113,18 @@ class DataLineage(object):
             self.compute_hash()
         return (self.data["dataset_hash"], not self.data["has_sources_without_hash"])
     
-    def is_uptodate_with(self, other: "DataLineage"):
+
+    def is_uptodate_with(self, other: Union["DataLineage", pathlib.Path, str]):
+        if isinstance(other, str):
+            if os.path.isfile(other):
+                other = DataLineage(other)
+            else:
+                return False
+        elif isinstance(other, pathlib.PosixPath):
+            if other.is_file():
+                other = DataLineage(other)
+            else:
+                return False
         h, ok = self.get_hash()
         other_h, other_ok = other.get_hash()
         if (not ok) or (not other_ok):
@@ -130,7 +155,7 @@ class DataLineage(object):
         l.source_hash = hash_from_Str(buf)
         return l
 
-    def add_source(self, src):
+    def add_source(self, src: LineageSource):
         s = self.sources
         s.append(src)
         self.sources = s
